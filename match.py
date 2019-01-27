@@ -29,7 +29,7 @@ NAME_MAPPER = {
 
 
 def preprocess(name):
-    name = name.lower().replace('.', ' ').replace(',', ' ').replace('&', ' ').strip()
+    name = name.lower().replace('.', ' ').replace(',', ' ').replace('&', ' ').replace('(', ' ').replace(')', ' ').strip()
     fields = []
     for x in name.split(' '):
         if x and x not in STOP_WORDS:
@@ -74,9 +74,18 @@ class Matcher(object):
             for score, name_list in match.items():
                 for name in name_list:
                     flat_matches.append((name, score))
+        flat_matches = list(set(flat_matches))
         return flat_matches
 
     def match(self, name, pool, source_firms, thresh=80):
+        """Find name in pool, given name in source_firms
+
+        :param name: one element in source_firms
+        :param pool: list of tuples (index, name)
+        :param source_firms:
+        :param thresh:
+        :return:
+        """
         counter = self.get_counter(source_firms)
         _, keys = self.find_keys(name, counter=counter)
         print('keys {} in name "{}" '.format(keys, name))
@@ -84,9 +93,9 @@ class Matcher(object):
         matches = []
         for key in keys:
             # candidates = [x for x in pool if key in x.lower().split(' ')]
-            candidates = [x for x in pool if key in x.lower()] # some spacing may be missing
+            candidates = [x for x in pool if key in x[1].lower()] # some spacing may be missing
             # print('candidate', candidates)
-            scores = [fuzz.partial_ratio(preprocess(name), preprocess(x)) for x in candidates]
+            scores = [fuzz.partial_ratio(preprocess(name), preprocess(x[1])) for x in candidates]
             scores_to_names = defaultdict(list)
             for score, candidate in zip(scores, candidates):
                 scores_to_names[score].append(candidate)
