@@ -3,16 +3,20 @@ from collections import defaultdict
 from fuzzywuzzy import fuzz
 import pandas as pd
 
+
+def load_csv_and_process(csv_path):
+    df = pd.read_csv(csv_path).drop('hfr_name', axis=1).rename(
+        index=str, columns={'PET_FIRM_NAME': 'name2', 'firm': 'name1'})
+    return df
+
+
 def load():
     csv_checked = 'data/1000_checked.csv'
     csv_to_check = 'data/1000_to_check.csv'
     csv_all = 'data/A_to_B.csv'
-    df_checked = pd.read_csv(csv_checked).drop('hfr_name', axis=1).rename(
-        index=str, columns={'PET_FIRM_NAME': 'name2', 'firm': 'name1'})
-    df_to_check = pd.read_csv(csv_to_check).drop('hfr_name', axis=1).rename(
-        index=str, columns={'PET_FIRM_NAME': 'name2', 'firm': 'name1'})
-    df_all = pd.read_csv(csv_all).drop('hfr_name', axis=1).rename(
-        index=str, columns={'PET_FIRM_NAME': 'name2', 'firm': 'name1'})
+    df_checked = load_csv_and_process(csv_checked)
+    df_to_check = load_csv_and_process(csv_to_check)
+    df_all = load_csv_and_process(csv_all)
     return df_checked, df_to_check, df_all
 
 
@@ -108,7 +112,7 @@ class Matcher(object):
         matches = self.postprocess(matches)
         return matches
 
-    def process(self, df):
+    def process(self, df, output_csv_path=None):
         """Match name in name1 col of df in name2 col
 
         :param df: has two columns, 'name1' and 'name2'
@@ -116,12 +120,19 @@ class Matcher(object):
         """
 
         names_to_match = df['name1'].unique().tolist()
-
-        for name in names_to_match[:10]:
+        df_pred = pd.DataFrame()
+        for name in names_to_match[:]:
             df_pool = df[df['name1'] == name]
             pool = list(df_pool['name2'].items())
             matches = self.match_once(name, pool)
             print(matches)
+            index_list_pred = [x[0][0] for x in matches]
+            # print('index_list_pred', index_list_pred)
+            df_pred = df_pred.append(df.loc[index_list_pred])
+
+        # write to csv
+        if output_csv_path is not None:
+            df_pred.to_csv(output_csv_path)
 
 
 class MatcherTest(object):
@@ -132,15 +143,22 @@ class MatcherTest(object):
         df_checked, df_to_check, df_all = load()
         all_source_firms = df_all['name1'].unique().tolist()
         matcher = Matcher(all_source_firms=all_source_firms)
-        matcher.process(df_to_check)
+
+        output_csv_path = 'data/1000_pred.csv'
+        matcher.process(df_to_check, output_csv_path=output_csv_path)
 
 
 class MatchEvaluator(object):
     def __init__(self):
         pass
 
-    def process(self, df_pred, df_checked):
-        pass
+    def process(self, names_to_match, df_pred, df_checked):
+        for name in names_to_match:
+            index_list_pred = df_pred[df_pred['name1'] == name].index.tolist()
+            index_list_checked = df_checked[df_checked['name1'] == name].index.tolist()
+            print('==============', name, '==============')
+            print(index_list_pred)
+            print(index_list_checked)
 
 
 class MatchEvaluatorTest(object):
@@ -148,9 +166,18 @@ class MatchEvaluatorTest(object):
         pass
 
     def __call__(self, *args, **kwargs):
-        pass
+        csv_pred = 'data/1000_pred.csv'
+        df_pred = load_csv_and_process(csv_pred)
+        df_checked, df_to_check, df_all = load()
+
+        names_to_match = df_to_check['name1'].unique().tolist()
+        assert len(names_to_match) == 100
+
+        evaluator = MatchEvaluator()
+        evaluator.process(names_to_match, df_pred, df_checked)
+
 
 
 if __name__ == '__main__':
     MatcherTest()()
-    MatchEvaluatorTest()()
+    # MatchEvaluatorTest()()
