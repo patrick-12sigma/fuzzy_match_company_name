@@ -5,8 +5,9 @@ import pandas as pd
 
 
 def load_csv_and_process(csv_path):
-    df = pd.read_csv(csv_path).drop('hfr_name', axis=1).rename(
-        index=str, columns={'PET_FIRM_NAME': 'name2', 'firm': 'name1'})
+    df = pd.read_csv(csv_path)
+    df = df.drop('hfr_name', axis=1)
+    df = df.rename(index=str, columns={'PET_FIRM_NAME': 'name2', 'firm': 'name1'})
     return df
 
 
@@ -94,7 +95,7 @@ class Matcher(object):
         :return:
         """
         _, keys = self.find_keys(name, counter=self.counter)
-        print('keys {} in name "{}" '.format(keys, name))
+        # print('keys {} in name "{}" '.format(keys, name))
 
         matches = []
         for key in keys:
@@ -125,14 +126,15 @@ class Matcher(object):
             df_pool = df[df['name1'] == name]
             pool = list(df_pool['name2'].items())
             matches = self.match_once(name, pool)
-            print(matches)
+            # print(matches)
             index_list_pred = [x[0][0] for x in matches]
             # print('index_list_pred', index_list_pred)
             df_pred = df_pred.append(df.loc[index_list_pred])
+            # print(len(index_list_pred))
 
         # write to csv
         if output_csv_path is not None:
-            df_pred.to_csv(output_csv_path)
+            df_pred.to_csv(output_csv_path, index_label='index')
 
 
 class MatcherTest(object):
@@ -156,9 +158,10 @@ class MatchEvaluator(object):
         for name in names_to_match:
             index_list_pred = df_pred[df_pred['name1'] == name].index.tolist()
             index_list_checked = df_checked[df_checked['name1'] == name].index.tolist()
+            index_list_checked = [int(x) for x in index_list_checked]
             print('==============', name, '==============')
-            print(index_list_pred)
-            print(index_list_checked)
+            print('pred', index_list_pred)
+            print('gt', index_list_checked)
 
 
 class MatchEvaluatorTest(object):
@@ -167,7 +170,7 @@ class MatchEvaluatorTest(object):
 
     def __call__(self, *args, **kwargs):
         csv_pred = 'data/1000_pred.csv'
-        df_pred = load_csv_and_process(csv_pred)
+        df_pred = pd.read_csv(csv_pred, index_col='index')
         df_checked, df_to_check, df_all = load()
 
         names_to_match = df_to_check['name1'].unique().tolist()
@@ -180,4 +183,4 @@ class MatchEvaluatorTest(object):
 
 if __name__ == '__main__':
     MatcherTest()()
-    # MatchEvaluatorTest()()
+    MatchEvaluatorTest()()
