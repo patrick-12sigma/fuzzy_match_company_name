@@ -45,8 +45,8 @@ def preprocess(name):
 
 
 class Matcher(object):
-    def __init__(self):
-        pass
+    def __init__(self, all_source_firms):
+        self.counter = self.get_counter(all_source_firms)
 
     def get_counter(self, source_firms):
         word_list = [w for word in source_firms for w in preprocess(word).split(' ')]
@@ -80,7 +80,7 @@ class Matcher(object):
         flat_matches = sorted(list(set(flat_matches)))
         return flat_matches
 
-    def match_once(self, name, pool, all_source_firms, thresh=80):
+    def match_once(self, name, pool, thresh=80):
         """Find name in pool, given name in source_firms
 
         :param name: one element in source_firms
@@ -89,8 +89,7 @@ class Matcher(object):
         :param thresh:
         :return:
         """
-        counter = self.get_counter(all_source_firms)
-        _, keys = self.find_keys(name, counter=counter)
+        _, keys = self.find_keys(name, counter=self.counter)
         print('keys {} in name "{}" '.format(keys, name))
 
         matches = []
@@ -109,7 +108,7 @@ class Matcher(object):
         matches = self.postprocess(matches)
         return matches
 
-    def process(self, df, all_source_firms):
+    def process(self, df):
         """Match name in name1 col of df in name2 col
 
         :param df: has two columns, 'name1' and 'name2'
@@ -121,26 +120,26 @@ class Matcher(object):
         for name in names_to_match[:10]:
             df_pool = df[df['name1'] == name]
             pool = list(df_pool['name2'].items())
-            matches = self.match_once(name, pool, all_source_firms=all_source_firms)
+            matches = self.match_once(name, pool)
             print(matches)
 
 
 class MatcherTest(object):
-    def __index__(self):
+    def __init__(self):
         pass
 
     def __call__(self, *args, **kwargs):
         df_checked, df_to_check, df_all = load()
         all_source_firms = df_all['name1'].unique().tolist()
-        matcher = Matcher()
-        matcher.process(df_to_check, all_source_firms=all_source_firms)
+        matcher = Matcher(all_source_firms=all_source_firms)
+        matcher.process(df_to_check)
 
 
 class MatchEvaluator(object):
     def __init__(self):
         pass
 
-    def process(self, ):
+    def process(self, df_pred, df_checked):
         pass
 
 
