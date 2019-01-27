@@ -1,6 +1,14 @@
 from collections import Counter
 from collections import defaultdict
+import fuzzywuzzy as fuzz
+import pandas as pd
 
+def load():
+    csv_checked = 'data/1000_checked.csv'
+    csv_to_check = 'data/1000_to_check.csv'
+    df_checked = pd.read_csv(csv_checked)
+    df_to_check = pd.read_csv(csv_to_check)
+    return df_checked, df_to_check
 
 class Matcher(object):
     def __init__(self):
@@ -44,7 +52,18 @@ class Matcher(object):
         return matches
 
 
-matcher = Matcher()
-name = 'Hamer Trading, Inc.'
+class MatcherTest(object):
+    def __index__(self):
+        pass
 
-matcher.match(name, pool)
+    def __call__(self, *args, **kwargs):
+        df_checked, df_to_check = load()
+
+        matcher = Matcher()
+        name = 'Hamer Trading, Inc.'
+
+        # matcher.match(name, pool)
+
+
+if __name__ == '__main__':
+    MatcherTest()()
