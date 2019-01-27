@@ -17,13 +17,27 @@ STOP_WORDS = [
     'group', 'gr', 'grp',
     'llc',
     'co',
-    'inc'
+    'inc',
+    'lp'
 ]
+
+
+NAME_MAPPER = {
+    'management': 'mgt',
+    'managements': 'mgt',
+}
 
 
 def preprocess(name):
     name = name.lower().replace('.', ' ').replace(',', ' ').replace('&', ' ').strip()
-    name = ' '.join([x for x in name.split(' ') if x and x not in STOP_WORDS])
+    fields = []
+    for x in name.split(' '):
+        if x and x not in STOP_WORDS:
+            if x in NAME_MAPPER:
+                x = NAME_MAPPER[x]
+            fields.append(x)
+    name = ' '.join(fields)
+
     return name
 
 
@@ -49,22 +63,38 @@ class Matcher(object):
             key_count, keys = sorted(freq_to_words.items())[0]
         return key_count, keys
 
-    def match(self, name, pool, source_firms):
+    def postprocess(self, matches):
+        """
+
+        :param matches: a list of dict, each dict has score as key and list of matches as val
+        :return:
+        """
+        flat_matches = []
+        for match in matches:
+            for score, name_list in match.items():
+                for name in name_list:
+                    flat_matches.append((name, score))
+        return flat_matches
+
+    def match(self, name, pool, source_firms, thresh=80):
         counter = self.get_counter(source_firms)
         _, keys = self.find_keys(name, counter=counter)
-        print('keys: ', keys)
+        print('keys {} in name "{}" '.format(keys, name))
 
         matches = []
         for key in keys:
             # candidates = [x for x in pool if key in x.lower().split(' ')]
             candidates = [x for x in pool if key in x.lower()] # some spacing may be missing
-            print('candidate', candidates)
+            # print('candidate', candidates)
             scores = [fuzz.partial_ratio(preprocess(name), preprocess(x)) for x in candidates]
             scores_to_names = defaultdict(list)
             for score, candidate in zip(scores, candidates):
                 scores_to_names[score].append(candidate)
-            print('scores to names', scores_to_names)
-            matches.append(sorted(scores_to_names.items(), reverse=True)[0])
+            # print('scores to names', scores_to_names)
+            filtered_scores_to_names = {k: v for k, v in scores_to_names.items() if k > thresh}
+            matches.append(filtered_scores_to_names)
+
+        matches = self.postprocess(matches)
         return matches
 
 
