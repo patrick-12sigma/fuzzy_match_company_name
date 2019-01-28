@@ -2,6 +2,7 @@ from collections import Counter
 from collections import defaultdict
 from fuzzywuzzy import fuzz
 import pandas as pd
+import jellyfish
 from tqdm import tqdm
 
 from zipcode_utils import *
@@ -28,12 +29,23 @@ def load():
     return df_checked, df_to_check, df_all
 
 
+"""
+Things to consider when adding to stop words
+['management', 'capital','llc','investment','inc','ltd','partners',
+'corporation','corp','of','solutions','technology','univ','limited',
+'services','llp','the','co','and','ltd','group','COMPANY']
+"""
+
 STOP_WORDS = [
     'group', 'gr', 'grp',
     'llc',
     'co',
     'inc',
-    'lp'
+    'lp',
+    'company',
+    'the',
+    'corporation',
+    'corp'
 ]
 
 
@@ -44,7 +56,7 @@ NAME_MAPPER = {
 
 
 def preprocess(name):
-    name = name.lower().replace('.', ' ').replace(',', ' ').replace('&', ' ').replace('(', ' ').replace(')', ' ').strip()
+    name = name.lower().replace('.', '').replace(',', ' ').replace('&', ' ').replace('(', ' ').replace(')', ' ').strip()
     fields = []
     for x in name.split(' '):
         if x and x not in STOP_WORDS:
@@ -52,12 +64,29 @@ def preprocess(name):
                 x = NAME_MAPPER[x]
             fields.append(x)
     name = ' '.join(fields)
-
+    print(name)
     return name
 
 
+def get_match_score(name1, name2, option='fuzzy'):
+    """
+
+    :param name1:
+    :param name2:
+    :param option: can be jelly or fuzzy
+    :return:
+    """
+    if option == 'fuzzy':
+        score = fuzz.partial_ratio(preprocess(name1), preprocess(name2))
+    elif option == 'jelly':
+        score = jellyfish.jaro_winkler(preprocess(name1), preprocess(name2)) * 100
+    else:
+        raise ValueError
+    return score
+
+
 class Matcher(object):
-    def __init__(self, all_source_firms, score_thresh=80, dist_thresh=20):
+    def __init__(self, all_source_firms, score_thresh=85, dist_thresh=30):
         self.counter = self.get_counter(all_source_firms)
         self.score_thresh = score_thresh
         self.dist_thresh = dist_thresh
@@ -69,6 +98,7 @@ class Matcher(object):
 
     def find_keys(self, name, counter, most_common=False):
         """Find the least common word in name according to counter"""
+        # TODO: use threshold to get multiple keys
         words = preprocess(name).split(' ')
         words = [x for x in words if x and len(x) > 1]
         freq_to_words = defaultdict(list)
@@ -111,7 +141,7 @@ class Matcher(object):
             # candidates = [x for x in pool if key in x.lower().split(' ')]
             candidates = [x for x in pool if key in x[1].lower()] # some spacing may be missing
             # print('candidate', candidates)
-            scores = [fuzz.partial_ratio(preprocess(name), preprocess(x[1])) for x in candidates]
+            scores = [get_match_score(name, x[1]) for x in candidates]
             scores_to_names = defaultdict(list)
             for score, candidate in zip(scores, candidates):
                 scores_to_names[score].append(candidate)
