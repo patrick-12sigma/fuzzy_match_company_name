@@ -5,6 +5,7 @@ import pandas as pd
 from uszipcode import SearchEngine
 from tqdm import tqdm
 
+
 def get_coord(int_zip):
     search = SearchEngine()
     zipcode = search.by_zipcode(int_zip)
@@ -34,13 +35,23 @@ def get_dist_by_city_state(city1=None, state1=None, city2=None, state2=None):
     return dist
 
 
+def is_valid(int_zip):
+    search = SearchEngine()
+    zipcode = search.by_zipcode(int(int_zip))
+    if zipcode.zipcode and zipcode.lat and zipcode.lng:
+        return True
+    else:
+        return False
+
+
+# TODO: cache results as a table for faster lookup
 def robust_get_dist(int_zip1=None, int_zip2=None, city1=None, state1=None, city2=None, state2=None):
     search = SearchEngine()
     try:
-        if search.by_zipcode(int(int_zip1)).zipcode is None or search.by_zipcode(int(int_zip1)).zipcode is None:
-            dist = get_dist_by_city_state(city1, state1, city2, state2)
-        else:
+        if is_valid(int_zip1) and is_valid(int_zip1):
             dist = get_dist_by_zip(int_zip1, int_zip2)
+        else:
+            dist = get_dist_by_city_state(city1, state1, city2, state2)
     except:
         dist = -1 # invalid value
     return dist
