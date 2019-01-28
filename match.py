@@ -38,20 +38,26 @@ Things to consider when adding to stop words
 
 STOP_WORDS = [
     'group', 'gr', 'grp',
-    'llc',
-    'co',
-    'inc',
-    'lp',
+    'llc', 'lp',
+    'inc', 'corporation', 'corp', 'co',
     'company',
-    'the',
-    'corporation',
-    'corp'
+    'the']
+
+
+# only use when zip code is the same?
+MAYBE_STOP_WORDS = [
+    'partner', 'partners', 'advisor', 'advisors',
+    'and',
+    'capital',
+    'solutions'
 ]
 
 
 NAME_MAPPER = {
     'management': 'mgt',
     'managements': 'mgt',
+    'investments': 'invest',
+    'investment': 'invest',
 }
 
 
