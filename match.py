@@ -2,6 +2,21 @@ from collections import Counter
 from collections import defaultdict
 from fuzzywuzzy import fuzz
 import pandas as pd
+from uszipcode import SearchEngine
+
+
+def get_coord(int_zip):
+    search = SearchEngine()
+    zipcode = search.by_zipcode(int_zip)
+    return dict(lat=zipcode.lat, lng=zipcode.lng)
+
+
+def get_dist(int_zip1, int_zip2):
+    """Get distance in miles between the geo-center of two zipcodes"""
+    search = SearchEngine()
+    zipcode1 = search.by_zipcode(int_zip1)
+    dist = zipcode1.dist_from(**get_coord(int_zip=int_zip2))
+    return dist
 
 
 def load_csv_and_process(csv_path):
@@ -159,9 +174,11 @@ class MatchEvaluator(object):
             index_list_pred = df_pred[df_pred['name1'] == name].index.tolist()
             index_list_checked = df_checked[df_checked['name1'] == name].index.tolist()
             index_list_checked = [int(x) for x in index_list_checked]
-            print('==============', name, '==============')
-            print('pred', index_list_pred)
-            print('gt', index_list_checked)
+            if index_list_checked != index_list_pred:
+                print('==============', name, '==============')
+                print('pred', index_list_pred)
+                print('gt', index_list_checked)
+
 
 
 class MatchEvaluatorTest(object):
