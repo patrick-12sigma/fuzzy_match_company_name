@@ -11,11 +11,33 @@ def get_coord(int_zip):
     return dict(lat=zipcode.lat, lng=zipcode.lng)
 
 
-def get_dist(int_zip1, int_zip2):
+def get_dist_by_zip(int_zip1, int_zip2):
     """Get distance in miles between the geo-center of two zipcodes"""
+    int_zip1, int_zip2 = int(int_zip1), int(int_zip2)
     search = SearchEngine()
     zipcode1 = search.by_zipcode(int_zip1)
     dist = zipcode1.dist_from(**get_coord(int_zip=int_zip2))
+    return dist
+
+
+def get_dist_by_city_state(city1=None, state1=None, city2=None, state2=None):
+    search = SearchEngine()
+    int_zip1_list = sorted([x.zipcode for x in search.by_city_and_state(city=city1, state=state1)])
+    int_zip2_list = sorted([x.zipcode for x in search.by_city_and_state(city=city2, state=state2)])
+    # randomly select 1 zip
+    print('using zip {} and {}'.format(int_zip1_list[0], int_zip2_list[0]))
+    dist = get_dist_by_zip(int_zip1_list[0], int_zip2_list[0])
+    return dist
+
+
+def robust_get_dist(int_zip1=None, int_zip2=None, city1=None, state1=None, city2=None, state2=None):
+    search = SearchEngine()
+    if search.by_zipcode(int_zip1).zipcode is None or search.by_zipcode(int_zip1).zipcode is None:
+        print('ho')
+        dist = get_dist_by_city_state(city1, state1, city2, state2)
+    else:
+        print('hi')
+        dist = get_dist_by_zip(int_zip1, int_zip2)
     return dist
 
 
